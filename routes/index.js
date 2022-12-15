@@ -5,12 +5,14 @@ const needle = require("needle");
 
 //Env vars
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
+const JIRA_ISSUE_URL = process.env.JIRA_ISSUE_URL;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
 let options = {
   username: JIRA_USERNAME,
   password: JIRA_KEY,
+  accept: "application/json",
   content_type: "application/json",
 };
 
@@ -37,6 +39,20 @@ router.get("/", async (req, res) => {
     }
 
     res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+});
+
+router.post("/", async (req, res) => {
+  try {
+    console.log(req.body);
+    console.log("header", req.headers);
+    // res.status(201).send("Issue created");
+    const createIssue = await needle("post", JIRA_ISSUE_URL, req.body, options);
+    const jiraResp = createIssue.body;
+
+    res.status(200).json(jiraResp);
   } catch (error) {
     res.status(500).json({ error });
   }

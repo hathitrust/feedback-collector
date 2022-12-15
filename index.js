@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 
+// JSON middleware for incoming requests
+app.use(express.json());
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, //10 minutes
@@ -17,6 +20,16 @@ app.set("trust proxy", 1);
 
 // Routes
 app.use("/api", require("./routes"));
+
+app.post("/", async (req, res) => {
+  try {
+    console.log(req.body);
+    res.status(201).send("Issue created");
+    // const issueRequest = await needle("post", JIRA_BASE_URL, options);
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+});
 
 // Enable cors
 app.use(cors());
