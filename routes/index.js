@@ -44,18 +44,36 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  try {
-    console.log(req.body);
-    console.log("header", req.headers);
-    // res.status(201).send("Issue created");
-    const createIssue = await needle("post", JIRA_ISSUE_URL, req.body, options);
-    const jiraResp = createIssue.body;
+router.post(
+  "/",
+  //TODO add express-validator validation/sanitization of incoming fields
+  async (req, res) => {
+    try {
+      console.log(req.body);
+      console.log("header", req.headers);
 
-    res.status(200).json(jiraResp);
-  } catch (error) {
-    res.status(500).json({ error });
+      const createIssue = await needle(
+        "post",
+        JIRA_ISSUE_URL,
+        req.body,
+        options
+      );
+      const jiraResp = createIssue.body;
+      const jiraStatus = createIssue.statusCode;
+
+      //error handling for the Jira response
+      if (jiraStatus == 201) {
+        //issue created successfully, send back 200 OK along with response object
+        res.status(200).json(jiraResp);
+      } else {
+        //something went wrong, send back 500, response object and console error/message
+        res.status(500).json(jiraResp);
+        console.error("Jira issue not created, error: ", jiraResp.errors);
+      }
+    } catch (error) {
+      res.status(500).json({ error });
+    }
   }
-});
+);
 
 module.exports = router;
