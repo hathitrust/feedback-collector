@@ -10,6 +10,9 @@ const app = express();
 // JSON middleware for incoming requests
 app.use(express.json());
 
+// Enable cors
+app.use(cors());
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, //10 minutes
@@ -30,8 +33,5 @@ app.post("/", async (req, res) => {
     res.status(500).json({ error });
   }
 });
-
-// Enable cors
-app.use(cors());
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
