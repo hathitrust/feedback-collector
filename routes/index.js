@@ -1,5 +1,7 @@
-const url = require("url");
+// const getCustomerRecord = require("../customers");
+// const url = require("url");
 const express = require("express");
+
 const router = express.Router();
 const needle = require("needle");
 
@@ -15,6 +17,79 @@ let options = {
   accept: "application/json",
   content_type: "application/json",
 };
+
+let name;
+let email;
+let summary;
+let userAgent;
+let userURL;
+let description;
+
+//customer functions
+
+//creates new customer account based on email address
+//returns new accountId
+const createNewCustomer = (email) => {
+  console.log("Creating new customer...");
+  const createCustomerData = `{
+    "displayName": "${email}",
+    "email": "${email}"
+  }`;
+  needle.post(
+    "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
+    createCustomerData,
+    options,
+    function (error, response) {
+      if (!error && response.statusCode == 201) {
+        //201 status is "created", so should have accountId in the body
+        console.log("new customer accountID: ", response.body.accountId);
+        return response.body.accountId;
+      } else {
+        console.log("user not created, status code: ", response.statusCode);
+      }
+    }
+  );
+};
+
+//returns accountID of customer
+//if no user with email address is in system
+const getCustomerRecord = (email) => {
+  const enteredEmail = `email entered in form: ${email}`;
+  const encodedEmail = encodeURIComponent(email);
+  //send GET request to /customers endpoint
+  needle.get(
+    `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
+    {
+      headers: { "X-ExperimentalApi": "opt-in" },
+      username: JIRA_USERNAME,
+      password: JIRA_KEY,
+    },
+    function (error, response) {
+      if (
+        !error &&
+        response.statusCode == 200 &&
+        response.body.values.length >= 1
+      ) {
+        console.log(
+          "getCustomerEmail accountID: ",
+          response.body.values[0].accountId
+        );
+        return response.body.values[0].accountId;
+      } else if (response.body.values.length === 0) {
+        console.log("no users with that email address");
+        createNewCustomer(email);
+        return;
+      } else {
+        // TODO: return HTUS general accountID as fallback
+        console.log(`status code: ${response.statusCode}`);
+        return;
+      }
+    }
+  );
+};
+
+//build request body to send to GS project
+const buildGSRequest = () => {};
 
 router.get("/", async (req, res) => {
   try {
@@ -48,18 +123,36 @@ router.post(
   "/",
   //TODO add express-validator validation/sanitization of incoming fields
   async (req, res) => {
+    //request body looks like:
+    //{
+    //   name: 'caryl',
+    //   email: 'carylw@umich.edu',
+    //   summary: 'hi',
+    //   description: 'hi again',
+    //   userURL: 'http://127.0.0.1:5173/',
+    //   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+    // }
     try {
       console.log(req.body);
       console.log("header", req.headers);
+      // console.log("eamil??", req.body.fields.raiseOnBehalfOf);
 
-      const createIssue = await needle(
-        "post",
-        JIRA_ISSUE_URL,
-        req.body,
-        options
-      );
-      const jiraResp = createIssue.body;
-      const jiraStatus = createIssue.statusCode;
+      let userEmail = req.body.email;
+
+      getCustomerRecord(userEmail);
+      // const customerRecord = (eamil) => {
+      //   console.log("customer email?", eamil);
+      // };
+
+      // customerRecord(userEmail);
+      // const createIssue = await needle(
+      //   "post",
+      //   JIRA_ISSUE_URL,
+      //   req.body,
+      //   options
+      // );
+      // const jiraResp = createIssue.body;
+      // const jiraStatus = createIssue.statusCode;
 
       //error handling for the Jira response
       if (jiraStatus == 201) {

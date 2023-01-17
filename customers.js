@@ -1,11 +1,25 @@
 const needle = require("needle");
 
-let accountID;
+// let accountID;
 
 //check if the email address of the submitter is a current service management customer - if yes, use the customer’s accountId for submission
 
 const getCustomerRecord = (email) => {
+  const enteredEmail = `email entered in form: ${email}`;
+  let accountID;
   //send GET request to /customers endpoint
+  needle.get(
+    `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${email}`,
+    function (error, response) {
+      if (!error && response.statusCode == 200) {
+        accountID = response.body;
+      } else {
+        accoundID = `status code: ${response.statusCode}`;
+      }
+    }
+  );
+
+  return `${enteredEmail} and accountID is ${accountID}`;
   // https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=carylw@umich.edu
   // returns
   // {
@@ -43,18 +57,21 @@ const getCustomerRecord = (email) => {
   //next function checks if accountID is truthy
 };
 
-if (accountID) {
-  //if accountID has anything in it, return
-} else {
-  //send POST request to create a customer
-  //https://hathitrust.atlassian.net/rest/servicedeskapi/customer
-  //if user didn't currently exist, returns a 201 CREATED response with new account details
-  //if user is already in the system or you sent a malformed email address, you get a 400
-  //send POST request to add customer to GS service desk
-  //https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer
-  //if done correctly, this returns a 204 status with no response
-  //if you pass an ID that doesn't exist, you get a 400
-  //set accountID
-}
+//TODO add conditional
+//if (accountID) {
+//if accountID has anything in it, return
+//} else {
+//send POST request to create a customer
+//https://hathitrust.atlassian.net/rest/servicedeskapi/customer
+//if user didn't currently exist, returns a 201 CREATED response with new account details
+//if user is already in the system or you sent a malformed email address, you get a 400
+//send POST request to add customer to GS service desk
+//https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer
+//if done correctly, this returns a 204 status with no response
+//if you pass an ID that doesn't exist, you get a 400
+//set accountID
+//}
 
 //add accountId to the rest of the form JSON data, send POST request to create new service management request
+
+module.exports = getCustomerRecord;
