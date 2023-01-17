@@ -54,8 +54,9 @@ const createNewCustomer = (email) => {
 //returns accountID of customer
 //if no user with email address is in system
 const getCustomerRecord = (email) => {
-  const enteredEmail = `email entered in form: ${email}`;
+  //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);
+
   //send GET request to /customers endpoint
   needle.get(
     `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
@@ -65,6 +66,7 @@ const getCustomerRecord = (email) => {
       password: JIRA_KEY,
     },
     function (error, response) {
+      //if the response body values array has something in it, customer already exists
       if (
         !error &&
         response.statusCode == 200 &&
@@ -75,10 +77,14 @@ const getCustomerRecord = (email) => {
           response.body.values[0].accountId
         );
         return response.body.values[0].accountId;
+
+        // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
       } else if (response.body.values.length === 0) {
         console.log("no users with that email address");
         createNewCustomer(email);
         return;
+
+        //if something went wrong with either looking up or creating user, fallback to HTUS default account details
       } else {
         // TODO: return HTUS general accountID as fallback
         console.log(`status code: ${response.statusCode}`);
@@ -93,18 +99,6 @@ const buildGSRequest = () => {};
 
 router.get("/", async (req, res) => {
   try {
-    //console.log(url.parse(req.url, true).query);
-
-    /* Jira doesn't use query params as far as I can tell, but maybe?
-
-    const params = new URLSearchParams({
-      //adds api key/value as query param
-      [API_KEY_NAME]: API_KEY_VALUE,
-      //takes additonal query params from URL and passes them in
-      ...url.parse(req.url, true).query,
-    });
-    */
-
     const apiRes = await needle("get", `${JIRA_BASE_URL}`, options);
     const data = apiRes.body;
 
@@ -140,11 +134,7 @@ router.post(
       let userEmail = req.body.email;
 
       getCustomerRecord(userEmail);
-      // const customerRecord = (eamil) => {
-      //   console.log("customer email?", eamil);
-      // };
 
-      // customerRecord(userEmail);
       // const createIssue = await needle(
       //   "post",
       //   JIRA_ISSUE_URL,
