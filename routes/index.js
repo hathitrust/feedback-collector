@@ -1,5 +1,3 @@
-// const getCustomerRecord = require("../customers");
-// const url = require("url");
 const express = require("express");
 
 const router = express.Router();
@@ -18,14 +16,10 @@ let options = {
   content_type: "application/json",
 };
 
-let name;
 let email;
-let summary;
-let userAgent;
-let userURL;
-let description;
 
 //customer functions
+//TODO: modularize these functions, abstract to customers.js
 
 //creates new customer account based on email address
 //returns new accountId
@@ -95,7 +89,28 @@ const getCustomerRecord = (email) => {
 };
 
 //build request body to send to GS project
-const buildGSRequest = () => {};
+const buildGSRequest = (requestBodyObject, accountID) => {
+  //example of request body
+  //{
+  //   name: 'caryl',
+  //   email: 'carylw@umich.edu',
+  //   summary: 'hi',
+  //   description: 'hi again',
+  //   userURL: 'http://127.0.0.1:5173/',
+  //   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+  // }
+  const bodyData = `{
+    "raiseOnBehalfOf": "${accountID}",
+    "serviceDeskId": "8",
+    "requestTypeId": "137",
+    "requestFieldValues": {
+      "summary": "${requestBodyObject.summary}",
+      "description": "${requestBodyObject.description} user agent: ${requestBodyObject.userAgent}, user URL: ${requestBodyObject.userURL}"
+    }
+  }`;
+  console.log(bodyData);
+  return bodyData;
+};
 
 router.get("/", async (req, res) => {
   try {
@@ -115,25 +130,31 @@ router.get("/", async (req, res) => {
 
 router.post(
   "/",
-  //TODO add express-validator validation/sanitization of incoming fields
+  //TODO
+  //add express - validator validation / sanitization of incoming fields
+
   async (req, res) => {
     //request body looks like:
-    //{
-    //   name: 'caryl',
-    //   email: 'carylw@umich.edu',
-    //   summary: 'hi',
-    //   description: 'hi again',
-    //   userURL: 'http://127.0.0.1:5173/',
-    //   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
-    // }
+
     try {
+      // console.log("header", req.headers);
       console.log(req.body);
-      console.log("header", req.headers);
-      // console.log("eamil??", req.body.fields.raiseOnBehalfOf);
+
+      let requestBodyObject = req.body;
 
       let userEmail = req.body.email;
 
-      getCustomerRecord(userEmail);
+      // TODO:
+      // since this is a slow action, gonna need to convert to async/await
+      // or make the buildGSRequest function await the result of getCustomerRecord
+      // probably safest to make everything async await
+      // as of jan 18, the console log with variables is returning the email ID retrieved from getCustomerRecord as undefined
+      // but then returns the ID after... just a timing issue
+      email = getCustomerRecord(userEmail);
+
+      //build new GS request body prior to sending it to Jira
+      // pass in the incoming request data from the feedback form and the generated accountID/email
+      buildGSRequest(requestBodyObject, email);
 
       // const createIssue = await needle(
       //   "post",
