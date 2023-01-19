@@ -6,6 +6,7 @@ const needle = require("needle");
 //Env vars
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
 const JIRA_ISSUE_URL = process.env.JIRA_ISSUE_URL;
+const JIRA_GS_REQUEST_URL = process.env.JIRA_GS_REQUEST_URL;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
@@ -154,16 +155,19 @@ router.post(
 
       //build new GS request body prior to sending it to Jira
       // pass in the incoming request data from the feedback form and the generated accountID/email
-      buildGSRequest(requestBodyObject, email);
+      const gsRequestBody = buildGSRequest(
+        requestBodyObject,
+        "633ac40a7f85f16777a16b93"
+      );
 
-      // const createIssue = await needle(
-      //   "post",
-      //   JIRA_ISSUE_URL,
-      //   req.body,
-      //   options
-      // );
-      // const jiraResp = createIssue.body;
-      // const jiraStatus = createIssue.statusCode;
+      const createIssue = await needle(
+        "post",
+        JIRA_GS_REQUEST_URL,
+        gsRequestBody,
+        options
+      );
+      const jiraResp = createIssue.body;
+      const jiraStatus = createIssue.statusCode;
 
       //error handling for the Jira response
       if (jiraStatus == 201) {
