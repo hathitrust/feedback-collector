@@ -89,8 +89,15 @@ const getCustomerRecord = (email) => {
   );
 };
 
+//format textarea input to replace textarea "new line" with new line character
+const replaceNewLines = (description) => {
+  let regex = /[\r\n\x0B\x0C\u0085\u2028\u2029]+/g;
+  return description.replace(regex, "\\n");
+};
+
 //build request body to send to GS project
 const buildGSRequest = (requestBodyObject, accountID) => {
+  let formattedDescription = replaceNewLines(requestBodyObject.description);
   //example of request body
   //{
   //   name: 'caryl',
@@ -106,7 +113,7 @@ const buildGSRequest = (requestBodyObject, accountID) => {
     "requestTypeId": "137",
     "requestFieldValues": {
       "summary": "${requestBodyObject.summary}",
-      "description": "${requestBodyObject.description} user agent: ${requestBodyObject.userAgent}, user URL: ${requestBodyObject.userURL}"
+      "description": "${formattedDescription} \\n user agent: ${requestBodyObject.userAgent} \\n user URL: ${requestBodyObject.userURL}"
     }
   }`;
   console.log(bodyData);
