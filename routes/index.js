@@ -30,20 +30,24 @@ const createNewCustomer = (email) => {
     "displayName": "${email}",
     "email": "${email}"
   }`;
-  needle.post(
+  needle(
+    "post",
     "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
     createCustomerData,
-    options,
-    function (error, response) {
-      if (!error && response.statusCode == 201) {
+    options
+  )
+    .then(function (response) {
+      if (response.statusCode == 201) {
         //201 status is "created", so should have accountId in the body
         console.log("new customer accountID: ", response.body.accountId);
         return response.body.accountId;
       } else {
         console.log("user not created, status code: ", response.statusCode);
       }
-    }
-  );
+    })
+    .catch(function (error) {
+      console.log("error with POST request to create customer: ", error);
+    });
 };
 
 //returns accountID of customer
@@ -52,21 +56,19 @@ const getCustomerRecord = (email) => {
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);
 
-  //send GET request to /customers endpoint
-  needle.get(
+  //send GET request to /customer endpoint
+  needle(
+    "get",
     `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
     {
       headers: { "X-ExperimentalApi": "opt-in" },
       username: JIRA_USERNAME,
       password: JIRA_KEY,
-    },
-    function (error, response) {
+    }
+  )
+    .then(function (response) {
       //if the response body values array has something in it, customer already exists
-      if (
-        !error &&
-        response.statusCode == 200 &&
-        response.body.values.length >= 1
-      ) {
+      if (response.statusCode == 200 && response.body.values.length >= 1) {
         console.log(
           "getCustomerEmail accountID: ",
           response.body.values[0].accountId
@@ -85,8 +87,10 @@ const getCustomerRecord = (email) => {
         console.log(`status code: ${response.statusCode}`);
         return;
       }
-    }
-  );
+    })
+    .catch(function (error) {
+      console.log(`error getting customer data: ${error}`);
+    });
 };
 
 //format textarea input to replace textarea "new line" with new line character
@@ -159,22 +163,23 @@ router.post(
       // as of jan 18, the console log with variables is returning the email ID retrieved from getCustomerRecord as undefined
       // but then returns the ID after... just a timing issue
       email = getCustomerRecord(userEmail);
+      // getCustomerRecord("carylw@umich.edu");
 
       //build new GS request body prior to sending it to Jira
       // pass in the incoming request data from the feedback form and the generated accountID/email
-      const gsRequestBody = buildGSRequest(
-        requestBodyObject,
-        "633ac40a7f85f16777a16b93"
-      );
+      // const gsRequestBody = buildGSRequest(
+      //   requestBodyObject,
+      //   "633ac40a7f85f16777a16b93"
+      // );
 
-      const createIssue = await needle(
-        "post",
-        JIRA_GS_REQUEST_URL,
-        gsRequestBody,
-        options
-      );
-      const jiraResp = createIssue.body;
-      const jiraStatus = createIssue.statusCode;
+      // const createIssue = await needle(
+      //   "post",
+      //   JIRA_GS_REQUEST_URL,
+      //   gsRequestBody,
+      //   options
+      // );
+      // const jiraResp = createIssue.body;
+      // const jiraStatus = createIssue.statusCode;
 
       //error handling for the Jira response
       if (jiraStatus == 201) {
