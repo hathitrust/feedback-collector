@@ -17,8 +17,6 @@ let options = {
   content_type: "application/json",
 };
 
-let email;
-
 //customer functions
 //TODO: modularize these functions, abstract to customers.js
 
@@ -89,10 +87,10 @@ const getCustomerRecord = async (email, name) => {
   const encodedEmail = encodeURIComponent(email);
 
   try {
-    //send GET request to /customer endpoint
+    //send GET request to general system /user endpoint
     let getCustomerData = await needle(
       "get",
-      `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
+      `https://hathitrust.atlassian.net/rest/api/latest/user/search?query=${encodedEmail}`,
       {
         headers: { "X-ExperimentalApi": "opt-in" },
         username: JIRA_USERNAME,
@@ -100,32 +98,34 @@ const getCustomerRecord = async (email, name) => {
       }
     );
 
-    //if the response body values array has something in it, customer already exists
-    if (
-      getCustomerData.statusCode == 200 &&
-      getCustomerData.body.values.length >= 1
-    ) {
+    let accountID;
+
+    //if the response body array has something in it, customer already exists
+    if (getCustomerData.statusCode == 200 && getCustomerData.body.length >= 1) {
       console.log(
         "getCustomerEmail accountID: ",
-        getCustomerData.body.values[0].accountId
+        getCustomerData.body[0].accountId
       );
-      return getCustomerData.body.values[0].accountId;
+      //doesn't hurt to add user to service desk
+      await addCustomerToServiceDesk(getCustomerData.body[0].accountId);
+      accountID = getCustomerData.body[0].accountId;
 
       // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
-    } else if (getCustomerData.body.values.length === 0) {
+    } else if (getCustomerData.body.length === 0) {
       console.log("no users with that email address");
       const newCustomer = await createNewCustomer(email, name);
       await addCustomerToServiceDesk(newCustomer);
-      return;
+      accountID = newCustomer;
 
       //if something went wrong with either looking up or creating user, fallback to HTUS default account details
     } else {
-      // TODO: return HTUS general accountID as fallback
       console.log(
-        `gotta fallback to HT general account, status code: ${getCustomerData.statusCode}`
+        `gotta fallback to HT general accountID 628d0d7b1c97b5006f0b29f4, status code: ${getCustomerData.statusCode}`
       );
-      return;
+      accountID = "628d0d7b1c97b5006f0b29f4";
     }
+    console.log("accountID variable is ", accountID);
+    return accountID;
   } catch (error) {
     console.log(`error getting customer data: ${error}`);
   }
@@ -138,7 +138,7 @@ const replaceNewLines = (description) => {
 };
 
 //build request body to send to GS project
-const buildGSRequest = (requestBodyObject, accountID) => {
+const buildGSRequest = async (requestBodyObject, accountID) => {
   let formattedDescription = replaceNewLines(requestBodyObject.description);
   //example of request body
   //{
@@ -184,8 +184,6 @@ router.post(
   //add express - validator validation / sanitization of incoming fields
 
   async (req, res) => {
-    //request body looks like:
-
     try {
       // console.log("header", req.headers);
       console.log(req.body);
@@ -195,31 +193,22 @@ router.post(
       let userEmail = req.body.email;
       let userDisplayName = req.body.name;
 
-      // TODO:
-      // since this is a slow action, gonna need to convert to async/await
-      // or make the buildGSRequest function await the result of getCustomerRecord
-      // probably safest to make everything async await
-      // as of jan 18, the console log with variables is returning the email ID retrieved from getCustomerRecord as undefined
-      // but then returns the ID after... just a timing issue
       console.log(`email submitted: ${userEmail}`);
-      email = getCustomerRecord(userEmail, userDisplayName);
-      // getCustomerRecord("carylw@umich.edu");
+      const customerID = await getCustomerRecord(userEmail, userDisplayName);
 
       //build new GS request body prior to sending it to Jira
       // pass in the incoming request data from the feedback form and the generated accountID/email
-      // const gsRequestBody = buildGSRequest(
-      //   requestBodyObject,
-      //   "633ac40a7f85f16777a16b93"
-      // );
+      const gsRequestBody = await buildGSRequest(requestBodyObject, customerID);
 
-      // const createIssue = await needle(
-      //   "post",
-      //   JIRA_GS_REQUEST_URL,
-      //   gsRequestBody,
-      //   options
-      // );
-      // const jiraResp = createIssue.body;
-      // const jiraStatus = createIssue.statusCode;
+      // do the dang posting of the service desk issue
+      const createIssue = await needle(
+        "post",
+        JIRA_GS_REQUEST_URL,
+        gsRequestBody,
+        options
+      );
+      const jiraResp = createIssue.body;
+      const jiraStatus = createIssue.statusCode;
 
       //error handling for the Jira response
       if (jiraStatus == 201) {
