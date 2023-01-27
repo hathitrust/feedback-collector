@@ -5,7 +5,6 @@ const needle = require("needle");
 
 //Env vars
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
-const JIRA_ISSUE_URL = process.env.JIRA_ISSUE_URL;
 const JIRA_GS_REQUEST_URL = process.env.JIRA_GS_REQUEST_URL;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
@@ -17,7 +16,8 @@ let options = {
   content_type: "application/json",
 };
 
-//customer functions
+// CUSTOMER FUNCTIONS
+
 //TODO: modularize these functions, abstract to customers.js
 
 //creates new customer account based on email address
@@ -140,15 +140,7 @@ const replaceNewLines = (description) => {
 //build request body to send to GS project
 const buildGSRequest = async (requestBodyObject, accountID) => {
   let formattedDescription = replaceNewLines(requestBodyObject.description);
-  //example of request body
-  //{
-  //   name: 'caryl',
-  //   email: 'carylw@umich.edu',
-  //   summary: 'hi',
-  //   description: 'hi again',
-  //   userURL: 'http://127.0.0.1:5173/',
-  //   userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
-  // }
+
   const bodyData = `{
     "raiseOnBehalfOf": "${accountID}",
     "serviceDeskId": "8",
@@ -158,7 +150,7 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
       "description": "${formattedDescription} \\n user agent: ${requestBodyObject.userAgent} \\n user URL: ${requestBodyObject.userURL}"
     }
   }`;
-  console.log(bodyData);
+  // console.log(bodyData);
   return bodyData;
 };
 
@@ -186,14 +178,13 @@ router.post(
   async (req, res) => {
     try {
       // console.log("header", req.headers);
-      console.log(req.body);
+      // console.log(req.body);
 
       let requestBodyObject = req.body;
-
       let userEmail = req.body.email;
       let userDisplayName = req.body.name;
 
-      console.log(`email submitted: ${userEmail}`);
+      //get or create customer's account ID
       const customerID = await getCustomerRecord(userEmail, userDisplayName);
 
       //build new GS request body prior to sending it to Jira
