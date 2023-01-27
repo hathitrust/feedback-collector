@@ -24,73 +24,111 @@ let email;
 
 //creates new customer account based on email address
 //returns new accountId
-const createNewCustomer = (email) => {
+const createNewCustomer = async (email, name) => {
   console.log("Creating new customer...");
   const createCustomerData = `{
-    "displayName": "${email}",
+    "displayName": "${name}",
     "email": "${email}"
   }`;
-  needle(
-    "post",
-    "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
-    createCustomerData,
-    options
-  )
-    .then(function (response) {
-      if (response.statusCode == 201) {
-        //201 status is "created", so should have accountId in the body
-        console.log("new customer accountID: ", response.body.accountId);
-        return response.body.accountId;
-      } else {
-        console.log("user not created, status code: ", response.statusCode);
-      }
-    })
-    .catch(function (error) {
-      console.log("error with POST request to create customer: ", error);
-    });
+  try {
+    let createCustomer = await needle(
+      "post",
+      "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
+      createCustomerData,
+      options
+    );
+    if (createCustomer.statusCode == 201) {
+      //201 status is "created", so should have accountId in the body
+      console.log("new customer accountID: ", createCustomer.body.accountId);
+      return createCustomer.body.accountId;
+    } else if (createCustomer.statusCode == 400) {
+      console.log(
+        "Response code: " +
+          createCustomer.statusCode +
+          ", user already exists or email formatted incorrectly"
+      );
+    } else {
+      console.log("user not created, status code: ", createCustomer.statusCode);
+      return false;
+    }
+  } catch (error) {
+    console.log("error with POST request to create customer: ", error);
+  }
+};
+
+const addCustomerToServiceDesk = async (account) => {
+  console.log("adding customer to service desk...");
+  const customerAccountID = `{
+    "accountIds": ["${account}"]
+  }`;
+  try {
+    let addCustomer = await needle(
+      "post",
+      "https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer",
+      customerAccountID,
+      options
+    );
+    if (addCustomer.statusCode == 204) {
+      console.log("customer added to service desk");
+    } else {
+      console.log(
+        "customer not added to service desk, status code: ",
+        addCustomer.statusCode
+      );
+    }
+    return;
+  } catch (error) {
+    console.log(`error adding customer to service desk: ${error}`);
+  }
 };
 
 //returns accountID of customer
 //if no user with email address is in system
-const getCustomerRecord = (email) => {
+const getCustomerRecord = async (email, name) => {
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);
 
-  //send GET request to /customer endpoint
-  needle(
-    "get",
-    `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
-    {
-      headers: { "X-ExperimentalApi": "opt-in" },
-      username: JIRA_USERNAME,
-      password: JIRA_KEY,
-    }
-  )
-    .then(function (response) {
-      //if the response body values array has something in it, customer already exists
-      if (response.statusCode == 200 && response.body.values.length >= 1) {
-        console.log(
-          "getCustomerEmail accountID: ",
-          response.body.values[0].accountId
-        );
-        return response.body.values[0].accountId;
-
-        // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
-      } else if (response.body.values.length === 0) {
-        console.log("no users with that email address");
-        createNewCustomer(email);
-        return;
-
-        //if something went wrong with either looking up or creating user, fallback to HTUS default account details
-      } else {
-        // TODO: return HTUS general accountID as fallback
-        console.log(`status code: ${response.statusCode}`);
-        return;
+  try {
+    //send GET request to /customer endpoint
+    let getCustomerData = await needle(
+      "get",
+      `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${encodedEmail}`,
+      {
+        headers: { "X-ExperimentalApi": "opt-in" },
+        username: JIRA_USERNAME,
+        password: JIRA_KEY,
       }
-    })
-    .catch(function (error) {
-      console.log(`error getting customer data: ${error}`);
-    });
+    );
+
+    //if the response body values array has something in it, customer already exists
+    if (
+      getCustomerData.statusCode == 200 &&
+      getCustomerData.body.values.length >= 1
+    ) {
+      console.log(
+        "getCustomerEmail accountID: ",
+        getCustomerData.body.values[0].accountId
+      );
+      return getCustomerData.body.values[0].accountId;
+
+      // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
+    } else if (getCustomerData.body.values.length === 0) {
+      console.log("no users with that email address");
+      const newCustomer = await createNewCustomer(email, name);
+      await addCustomerToServiceDesk(newCustomer);
+      return;
+
+      //if something went wrong with either looking up or creating user, fallback to HTUS default account details
+    } else {
+      // TODO: return HTUS general accountID as fallback
+      console.log(
+        `gotta fallback to HT general account, status code: ${getCustomerData.statusCode}`
+      );
+      return;
+    }
+  } catch (error) {
+    console.log(`error getting customer data: ${error}`);
+  }
 };
 
 //format textarea input to replace textarea "new line" with new line character
@@ -155,6 +193,7 @@ router.post(
       let requestBodyObject = req.body;
 
       let userEmail = req.body.email;
+      let userDisplayName = req.body.name;
 
       // TODO:
       // since this is a slow action, gonna need to convert to async/await
@@ -162,7 +201,8 @@ router.post(
       // probably safest to make everything async await
       // as of jan 18, the console log with variables is returning the email ID retrieved from getCustomerRecord as undefined
       // but then returns the ID after... just a timing issue
-      email = getCustomerRecord(userEmail);
+      console.log(`email submitted: ${userEmail}`);
+      email = getCustomerRecord(userEmail, userDisplayName);
       // getCustomerRecord("carylw@umich.edu");
 
       //build new GS request body prior to sending it to Jira
