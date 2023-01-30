@@ -1,77 +1,123 @@
 const needle = require("needle");
 
-// let accountID;
+const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
+const JIRA_GS_REQUEST_URL = process.env.JIRA_GS_REQUEST_URL;
+const JIRA_USERNAME = process.env.JIRA_USERNAME;
+const JIRA_KEY = process.env.JIRA_KEY;
 
-//check if the email address of the submitter is a current service management customer - if yes, use the customer’s accountId for submission
-
-const getCustomerRecord = (email) => {
-  const enteredEmail = `email entered in form: ${email}`;
-  let accountID;
-  //send GET request to /customers endpoint
-  needle.get(
-    `https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=${email}`,
-    function (error, response) {
-      if (!error && response.statusCode == 200) {
-        accountID = response.body;
-      } else {
-        accoundID = `status code: ${response.statusCode}`;
-      }
-    }
-  );
-
-  return `${enteredEmail} and accountID is ${accountID}`;
-  // https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=carylw@umich.edu
-  // returns
-  // {
-  //     "size": 1,
-  //     "start": 0,
-  //     "limit": 50,
-  //     "isLastPage": true,
-  //     "_links": {
-  //         "self": "https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer?query=carylw@umich.edu",
-  //         "base": "https://hathitrust.atlassian.net",
-  //         "context": ""
-  //     },
-  //     "values": [
-  //         {
-  //             "accountId": "633ac40a7f85f16777a16b93",
-  //             "emailAddress": "carylw@umich.edu",
-  //             "displayName": "caryl wyatt",
-  //             "active": true,
-  //             "timeZone": "America/Chicago",
-  //             "_links": {
-  //                 "jiraRest": "https://hathitrust.atlassian.net/rest/api/2/user?accountId=633ac40a7f85f16777a16b93",
-  //                 "avatarUrls": {
-  //                     "48x48": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/633ac40a7f85f16777a16b93/8afd5248-4fda-43ed-9edc-a6f684ce021c/48",
-  //                     "24x24": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/633ac40a7f85f16777a16b93/8afd5248-4fda-43ed-9edc-a6f684ce021c/24",
-  //                     "16x16": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/633ac40a7f85f16777a16b93/8afd5248-4fda-43ed-9edc-a6f684ce021c/16",
-  //                     "32x32": "https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/633ac40a7f85f16777a16b93/8afd5248-4fda-43ed-9edc-a6f684ce021c/32"
-  //                 },
-  //                 "self": "https://hathitrust.atlassian.net/rest/api/2/user?accountId=633ac40a7f85f16777a16b93"
-  //             }
-  //         }
-  //     ]
-  // }
-  //set accountID variable to values.accountID (if it exists)
-  //otherwise, return
-  //next function checks if accountID is truthy
+let options = {
+  username: JIRA_USERNAME,
+  password: JIRA_KEY,
+  accept: "application/json",
+  content_type: "application/json",
 };
 
-//TODO add conditional
-//if (accountID) {
-//if accountID has anything in it, return
-//} else {
-//send POST request to create a customer
-//https://hathitrust.atlassian.net/rest/servicedeskapi/customer
-//if user didn't currently exist, returns a 201 CREATED response with new account details
-//if user is already in the system or you sent a malformed email address, you get a 400
-//send POST request to add customer to GS service desk
-//https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer
-//if done correctly, this returns a 204 status with no response
-//if you pass an ID that doesn't exist, you get a 400
-//set accountID
-//}
+//creates new customer account based on email address
+//returns new accountId
+createNewCustomer = async (email, name) => {
+  console.log("Creating new customer...");
+  const createCustomerData = `{
+    "displayName": "${name}",
+    "email": "${email}"
+  }`;
+  try {
+    let createCustomer = await needle(
+      "post",
+      "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
+      createCustomerData,
+      options
+    );
+    if (createCustomer.statusCode == 201) {
+      //201 status is "created", so should have accountId in the body
+      console.log("new customer accountID: ", createCustomer.body.accountId);
+      return createCustomer.body.accountId;
+    } else if (createCustomer.statusCode == 400) {
+      console.log(
+        "Response code: " +
+          createCustomer.statusCode +
+          ", user already exists or email formatted incorrectly"
+      );
+    } else {
+      console.log("user not created, status code: ", createCustomer.statusCode);
+      return false;
+    }
+  } catch (error) {
+    console.log("error with POST request to create customer: ", error);
+  }
+};
 
-//add accountId to the rest of the form JSON data, send POST request to create new service management request
+addCustomerToServiceDesk = async (account) => {
+  console.log("adding customer to service desk...");
+  const customerAccountID = `{
+    "accountIds": ["${account}"]
+  }`;
+  try {
+    let addCustomer = await needle(
+      "post",
+      "https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer",
+      customerAccountID,
+      options
+    );
+    if (addCustomer.statusCode == 204) {
+      console.log("customer added to service desk");
+    } else {
+      console.log(
+        "customer not added to service desk, status code: ",
+        addCustomer.statusCode
+      );
+    }
+    return;
+  } catch (error) {
+    console.log(`error adding customer to service desk: ${error}`);
+  }
+};
 
-module.exports = getCustomerRecord;
+//returns accountID of customer
+//if no user with email address is in system
+exports.getCustomerRecord = async (email, name) => {
+  //encode symbols in email address before passing to Jira
+  const encodedEmail = encodeURIComponent(email);
+
+  try {
+    //send GET request to general system /user endpoint
+    let getCustomerData = await needle(
+      "get",
+      `https://hathitrust.atlassian.net/rest/api/latest/user/search?query=${encodedEmail}`,
+      {
+        headers: { "X-ExperimentalApi": "opt-in" },
+        username: JIRA_USERNAME,
+        password: JIRA_KEY,
+      }
+    );
+
+    let accountID;
+
+    //if the response body array has something in it, customer already exists
+    if (getCustomerData.statusCode == 200 && getCustomerData.body.length >= 1) {
+      console.log(
+        "getCustomerEmail accountID: ",
+        getCustomerData.body[0].accountId
+      );
+      //doesn't hurt to add user to service desk
+      await addCustomerToServiceDesk(getCustomerData.body[0].accountId);
+      accountID = getCustomerData.body[0].accountId;
+
+      // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
+    } else if (getCustomerData.body.length === 0) {
+      console.log("no users with that email address");
+      const newCustomer = await createNewCustomer(email, name);
+      await addCustomerToServiceDesk(newCustomer);
+      accountID = newCustomer;
+
+      //if something went wrong with either looking up or creating user, fallback to HTUS default account details
+    } else {
+      console.log(
+        `gotta fallback to HT general accountID 628d0d7b1c97b5006f0b29f4, status code: ${getCustomerData.statusCode}`
+      );
+      accountID = "628d0d7b1c97b5006f0b29f4";
+    }
+    return accountID;
+  } catch (error) {
+    console.log(`error getting customer data: ${error}`);
+  }
+};
