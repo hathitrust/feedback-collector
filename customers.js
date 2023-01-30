@@ -1,7 +1,5 @@
 const needle = require("needle");
 
-const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
-const JIRA_GS_REQUEST_URL = process.env.JIRA_GS_REQUEST_URL;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
@@ -46,6 +44,7 @@ createNewCustomer = async (email, name) => {
   }
 };
 
+//adds customer account ID to service desk
 addCustomerToServiceDesk = async (account) => {
   console.log("adding customer to service desk...");
   const customerAccountID = `{
@@ -72,8 +71,7 @@ addCustomerToServiceDesk = async (account) => {
   }
 };
 
-//returns accountID of customer
-//if no user with email address is in system
+//returns account ID of customer
 exports.getCustomerRecord = async (email, name) => {
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);

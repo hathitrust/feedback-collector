@@ -6,8 +6,6 @@ const needle = require("needle");
 const { getCustomerRecord } = require("../customers");
 
 //Env vars
-const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
-const JIRA_GS_REQUEST_URL = process.env.JIRA_GS_REQUEST_URL;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
@@ -43,13 +41,12 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
 
 router.get("/", async (req, res) => {
   try {
-    const apiRes = await needle("get", `${JIRA_BASE_URL}`, options);
+    const apiRes = await needle(
+      "get",
+      "https://hathitrust.atlassian.net/rest/api/3/project/search",
+      options
+    );
     const data = apiRes.body;
-
-    // Log request to the actual API
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`REQUEST: ${JIRA_BASE_URL}`);
-    }
 
     res.status(200).json(data);
   } catch (error) {
@@ -66,19 +63,19 @@ router.post(
     try {
       let requestBodyObject = req.body;
       let userEmail = req.body.email;
-      let userDisplayName = req.body.name;
+      let userDisplayName = req.body.name || req.body.email;
 
       //get or create customer's account ID
       const customerID = await getCustomerRecord(userEmail, userDisplayName);
 
-      //build new GS request body prior to sending it to Jira
-      // pass in the incoming request data from the feedback form and the generated accountID/email
+      //build new General Support (GS) ticket request body prior to sending it to Jira
+      //pass in the incoming request data from the feedback form and the generated accountID/email
       const gsRequestBody = await buildGSRequest(requestBodyObject, customerID);
 
-      // do the dang posting of the service desk issue
+      // do the dang posting of the service desk request
       const createIssue = await needle(
         "post",
-        JIRA_GS_REQUEST_URL,
+        "https://hathitrust.atlassian.net/rest/servicedeskapi/request",
         gsRequestBody,
         options
       );
