@@ -14,6 +14,7 @@ app.use(express.json());
 app.use(cors());
 
 // Rate limiting
+// returns 429 'Too many requests' error if limit is hit
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, //10 minutes
   max: 5, //max number of requests during timeframe
