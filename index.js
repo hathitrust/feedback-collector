@@ -26,14 +26,4 @@ app.set("trust proxy", 1);
 // Routes
 app.use("/api", require("./routes"));
 
-app.post("/", async (req, res) => {
-  try {
-    console.log(req.body);
-    res.status(201).send("Issue created");
-    // const issueRequest = await needle("post", JIRA_BASE_URL, options);
-  } catch (error) {
-    res.status(500).json({ error });
-  }
-});
-
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

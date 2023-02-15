@@ -39,21 +39,6 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
   return bodyData;
 };
 
-router.get("/", async (req, res) => {
-  try {
-    const apiRes = await needle(
-      "get",
-      "https://hathitrust.atlassian.net/rest/api/3/project/search",
-      options
-    );
-    const data = apiRes.body;
-
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error });
-  }
-});
-
 router.post(
   "/",
   //TODO
