@@ -33,7 +33,7 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
     "requestTypeId": "137",
     "requestFieldValues": {
       "summary": "${requestBodyObject.summary}",
-      "description": "Book description or URL: ${requestBodyObject.bookDescription} \\n Full description: ${formattedDescription} \\n user agent: ${requestBodyObject.userAgent} \\n user URL: ${requestBodyObject.userURL}"
+      "description": "Book description or URL: ${requestBodyObject.bookDescription} \\n Full description: ${formattedDescription} \\n user agent: ${requestBodyObject.userAgent} \\n user URL: ${requestBodyObject.userURL} \\n user auth: ${requestBodyObject.userAuthStatus}"
     }
   }`;
   return bodyData;
