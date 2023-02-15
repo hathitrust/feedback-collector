@@ -3,7 +3,7 @@ const needle = require("needle");
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
-let options = {
+const headerOptions = {
   username: JIRA_USERNAME,
   password: JIRA_KEY,
   accept: "application/json",
@@ -23,7 +23,7 @@ createNewCustomer = async (email, name) => {
       "post",
       "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
       createCustomerData,
-      options
+      headerOptions
     );
     if (createCustomer.statusCode == 201) {
       //201 status is "created", so should have accountId in the body
@@ -55,7 +55,7 @@ addCustomerToServiceDesk = async (account) => {
       "post",
       "https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer",
       customerAccountID,
-      options
+      headerOptions
     );
     if (addCustomer.statusCode == 204) {
       console.log("customer added to service desk");

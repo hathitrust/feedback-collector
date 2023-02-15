@@ -10,7 +10,7 @@ const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
 
 //headers for general Jira http requests
-let options = {
+const headerOptions = {
   username: JIRA_USERNAME,
   password: JIRA_KEY,
   accept: "application/json",
@@ -62,7 +62,7 @@ router.post(
         "post",
         "https://hathitrust.atlassian.net/rest/servicedeskapi/request",
         gsRequestBody,
-        options
+        headerOptions
       );
       const jiraResp = createIssue.body;
       const jiraStatus = createIssue.statusCode;
