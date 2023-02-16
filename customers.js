@@ -45,6 +45,7 @@ createNewCustomer = async (email, name) => {
 };
 
 //adds customer account ID to service desk
+//return customer ID if successful, return HT account ID if something went wrong
 addCustomerToServiceDesk = async (account) => {
   console.log("adding customer to service desk...");
   const customerAccountID = `{
@@ -59,13 +60,16 @@ addCustomerToServiceDesk = async (account) => {
     );
     if (addCustomer.statusCode == 204) {
       console.log("customer added to service desk");
+      //return accountID
+      return account;
     } else {
       console.log(
-        "customer not added to service desk, status code: ",
+        "customer not added to service desk, falling back to HT user account. Status code: ",
         addCustomer.statusCode
       );
+      // use HT user account ID
+      return "628d0d7b1c97b5006f0b29f4";
     }
-    return;
   } catch (error) {
     console.log(`error adding customer to service desk: ${error}`);
   }
@@ -96,16 +100,16 @@ exports.getCustomerRecord = async (email, name) => {
         "getCustomerEmail accountID: ",
         getCustomerData.body[0].accountId
       );
-      //doesn't hurt to add user to service desk
-      await addCustomerToServiceDesk(getCustomerData.body[0].accountId);
-      accountID = getCustomerData.body[0].accountId;
+      //add user to service desk
+      accountID = await addCustomerToServiceDesk(
+        getCustomerData.body[0].accountId
+      );
 
       // if that values array is empty, we need to create a new customer using their email address and name (if supplied)
     } else if (getCustomerData.body.length === 0) {
       console.log("no users with that email address");
       const newCustomer = await createNewCustomer(email, name);
-      await addCustomerToServiceDesk(newCustomer);
-      accountID = newCustomer;
+      accountID = await addCustomerToServiceDesk(newCustomer);
 
       //if something went wrong with either looking up or creating user, fallback to HTUS default account details
     } else {
