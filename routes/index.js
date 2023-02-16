@@ -17,26 +17,19 @@ const headerOptions = {
   content_type: "application/json",
 };
 
-//format textarea input to replace textarea "new line" with new line character
-const replaceNewLines = (description) => {
-  let regex = /[\r\n\x0B\x0C\u0085\u2028\u2029]+/g;
-  return description.replace(regex, "\\n");
-};
-
 //build request body to send to GS project
 const buildGSRequest = async (requestBodyObject, accountID) => {
-  let formattedDescription = replaceNewLines(requestBodyObject.description);
+  const bodyObject = {
+    raiseOnBehalfOf: accountID,
+    serviceDeskId: "8",
+    requestTypeId: "137",
+    requestFieldValues: {
+      summary: requestBodyObject.summary,
+      description: `Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n user agent: ${requestBodyObject.userAgent} \n user URL: ${requestBodyObject.userURL} \n user auth: ${requestBodyObject.userAuthStatus}`,
+    },
+  };
 
-  const bodyData = `{
-    "raiseOnBehalfOf": "${accountID}",
-    "serviceDeskId": "8",
-    "requestTypeId": "137",
-    "requestFieldValues": {
-      "summary": "${requestBodyObject.summary}",
-      "description": "Book description or URL: ${requestBodyObject.bookDescription} \\n Full description: ${formattedDescription} \\n user agent: ${requestBodyObject.userAgent} \\n user URL: ${requestBodyObject.userURL} \\n user auth: ${requestBodyObject.userAuthStatus}"
-    }
-  }`;
-  return bodyData;
+  return JSON.stringify(bodyObject);
 };
 
 router.post(
