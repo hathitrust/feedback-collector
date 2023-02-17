@@ -2,6 +2,7 @@ const needle = require("needle");
 
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
+const HT_ACCOUNT_ID = process.env.HT_ACCOUNT_ID;
 
 const headerOptions = {
   username: JIRA_USERNAME,
@@ -68,7 +69,7 @@ addCustomerToServiceDesk = async (account) => {
         addCustomer.statusCode
       );
       // use HT user account ID
-      return "628d0d7b1c97b5006f0b29f4";
+      return HT_ACCOUNT_ID;
     }
   } catch (error) {
     console.log(`error adding customer to service desk: ${error}`);
@@ -114,9 +115,9 @@ exports.getCustomerRecord = async (email, name) => {
       //if something went wrong with either looking up or creating user, fallback to HTUS default account details
     } else {
       console.log(
-        `gotta fallback to HT general accountID 628d0d7b1c97b5006f0b29f4, status code: ${getCustomerData.statusCode}`
+        `gotta fallback to HT general accountID, status code: ${getCustomerData.statusCode}`
       );
-      accountID = "628d0d7b1c97b5006f0b29f4";
+      accountID = HT_ACCOUNT_ID;
     }
     return accountID;
   } catch (error) {
