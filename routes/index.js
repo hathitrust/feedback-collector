@@ -8,6 +8,8 @@ const { getCustomerRecord } = require("../customers");
 //Env vars
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 const JIRA_KEY = process.env.JIRA_KEY;
+const GS_SERVICE_DESK_ID = process.env.GS_SERVICE_DESK_ID;
+const GS_REQUEST_TYPE_ID = process.env.GS_REQUEST_TYPE_ID;
 
 //headers for general Jira http requests
 const headerOptions = {
@@ -21,8 +23,8 @@ const headerOptions = {
 const buildGSRequest = async (requestBodyObject, accountID) => {
   const bodyObject = {
     raiseOnBehalfOf: accountID,
-    serviceDeskId: "8",
-    requestTypeId: "137",
+    serviceDeskId: GS_SERVICE_DESK_ID,
+    requestTypeId: GS_REQUEST_TYPE_ID,
     requestFieldValues: {
       summary: requestBodyObject.summary,
       description: `Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n user agent: ${requestBodyObject.userAgent} \n user URL: ${requestBodyObject.userURL} \n user auth: ${requestBodyObject.userAuthStatus}`,
