@@ -1,9 +1,12 @@
+FROM node:18.16.0 AS development
+
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feedback-collector
 
-FROM node:18.16.0
+WORKDIR /usr/src/app
 
-COPY . /app
-WORKDIR /app
-
-RUN npm install
+RUN npm config set update-notifier false
 CMD npm start
+
+FROM development AS production
+RUN npm install --production
+COPY . /usr/src/app
