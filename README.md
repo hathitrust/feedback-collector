@@ -1,11 +1,11 @@
-# node API proxy
+# HathiTrust JIRA feedback collector
 
-Work in progress, will probably need a new name.
+Collects feedback and posts it to Jira.
 
 ## try it out
 
-1. `git clone git@github.com:hathitrust/node-api-proxy.git`
-2. `cd node-api-proxy`
+1. `git clone git@github.com:hathitrust/feedback-collector.git`
+2. `cd feedback-collector`
 3. `npm i`
 4. add API info to `.env.example` and remove the `.example` extension
 5. `npm run dev`
