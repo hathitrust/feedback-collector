@@ -8,5 +8,5 @@ RUN npm config set update-notifier false
 CMD npm start
 
 FROM development AS production
-RUN npm install --production
 COPY . /usr/src/app
+RUN npm install --omit=dev
