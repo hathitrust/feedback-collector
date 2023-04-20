@@ -1,0 +1,23 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - name: Deploy to production
+      uses: mlibrary/deploy-to-kubernetes@v3
+      with:
+        registry_token: ${{ github.token }}
+        image: ghcr.io/${{ github.repository }}:${{ github.event.inputs.tag }}
+        cluster_ca: ${{ secrets.KUBERNETES_CA }}
+        cluster_server: ${{ secrets.KUBERNETES_SERVER }}
+        namespace_token: ${{ secrets.KUBERNETES_TOKEN }}
+        namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
