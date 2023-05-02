@@ -1,9 +1,9 @@
-const express = require("express");
+const express = require('express');
 
 const router = express.Router();
-const needle = require("needle");
+const needle = require('needle');
 
-const { getCustomerRecord } = require("../customers");
+const { getCustomerRecord } = require('../customers');
 
 //Env vars
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
@@ -15,8 +15,22 @@ const GS_REQUEST_TYPE_ID = process.env.GS_REQUEST_TYPE_ID;
 const headerOptions = {
   username: JIRA_USERNAME,
   password: JIRA_KEY,
-  accept: "application/json",
-  content_type: "application/json",
+  accept: 'application/json',
+  content_type: 'application/json',
+};
+
+//build request description based on which form is being submitted
+const buildDescription = async (requestBodyObject) => {
+  if (requestBodyObject.formName == 'basic-form') {
+    return `*GENERAL FEEDBACK* \n\n Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
+  } else if (requestBodyObject.formName == 'catalog-correction') {
+    return `*CATALOG QUALITY CORRECTION* \n\n URL of catalog record: ${requestBodyObject.recordURL} \n URL of item with issue within record: ${requestBodyObject.itemURL} \n Title of book: ${requestBodyObject.itemTitle} \n Problems: ${requestBodyObject.problems} \n Access issues: ${requestBodyObject.access} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
+    // return `Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n user agent: ${requestBodyObject.userAgent} \n user URL: ${requestBodyObject.userURL} \n user auth: ${requestBodyObject.userAuthStatus}`;
+  } else if (requestBodyObject.formName == 'content-correction') {
+    return `*CONTENT QUALITY CORRECTION* \n\n URL of book with problem: ${requestBodyObject.bookURL} \n Title of book: ${requestBodyObject.itemTitle} \n Overall quality: ${requestBodyObject.imageQuality} \n Specific page image problems: ${requestBodyObject.imageProblems} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
+  } else {
+    return `form name issue`;
+  }
 };
 
 //build request body to send to GS project
@@ -27,7 +41,7 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
     requestTypeId: GS_REQUEST_TYPE_ID,
     requestFieldValues: {
       summary: requestBodyObject.summary,
-      description: `Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n user agent: ${requestBodyObject.userAgent} \n user URL: ${requestBodyObject.userURL} \n user auth: ${requestBodyObject.userAuthStatus}`,
+      description: await buildDescription(requestBodyObject),
     },
   };
 
@@ -35,7 +49,7 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
 };
 
 router.post(
-  "/",
+  '/',
   //TODO
   //add express - validator validation / sanitization of incoming fields
 
@@ -54,8 +68,8 @@ router.post(
 
       // do the dang posting of the service desk request
       const createIssue = await needle(
-        "post",
-        "https://hathitrust.atlassian.net/rest/servicedeskapi/request",
+        'post',
+        'https://hathitrust.atlassian.net/rest/servicedeskapi/request',
         gsRequestBody,
         headerOptions
       );
@@ -69,7 +83,7 @@ router.post(
       } else {
         //something went wrong, send back 500, response object and console error/message
         res.status(500).json(jiraResp);
-        console.error("Jira issue not created, error: ", jiraResp.errors);
+        console.error('Jira issue not created, error: ', jiraResp.errors);
       }
     } catch (error) {
       res.status(500).json({ error });
