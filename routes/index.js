@@ -11,6 +11,9 @@ const JIRA_KEY = process.env.JIRA_KEY;
 const GS_SERVICE_DESK_ID = process.env.GS_SERVICE_DESK_ID;
 const GS_REQUEST_TYPE_ID = process.env.GS_REQUEST_TYPE_ID;
 
+let descriptionBuilt = true;
+let errorMessage = '';
+
 //headers for general Jira http requests
 const headerOptions = {
   username: JIRA_USERNAME,
@@ -29,7 +32,10 @@ const buildDescription = async (requestBodyObject) => {
   } else if (requestBodyObject.formName == 'content-correction') {
     return `*CONTENT QUALITY CORRECTION* \n\n URL of book with problem: ${requestBodyObject.bookURL} \n Title of book: ${requestBodyObject.itemTitle} \n Overall quality: ${requestBodyObject.imageQuality} \n Specific page image problems: ${requestBodyObject.imageProblems} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
   } else {
-    return `form name issue`;
+    descriptionBuilt = false;
+    errorMessage =
+      'Issue description did not build, check formName variable is set on front-end form';
+    return;
   }
 };
 
@@ -77,13 +83,16 @@ router.post(
       const jiraStatus = createIssue.statusCode;
 
       //error handling for the Jira response
-      if (jiraStatus == 201) {
+      if (descriptionBuilt && jiraStatus == 201) {
         //issue created successfully, send back 200 OK along with response object
         res.status(200).json(jiraResp);
       } else {
         //something went wrong, send back 500, response object and console error/message
         res.status(500).json(jiraResp);
-        console.error('Jira issue not created, error: ', jiraResp.errors);
+        console.error(
+          'Jira issue not created, error: ',
+          errorMessage || jiraResp.errors
+        );
       }
     } catch (error) {
       res.status(500).json({ error });
