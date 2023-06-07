@@ -6,10 +6,11 @@ const needle = require('needle');
 const { getCustomerRecord } = require('../customers');
 
 //Env vars
-const JIRA_USERNAME = process.env.JIRA_USERNAME;
-const JIRA_KEY = process.env.JIRA_KEY;
-const GS_SERVICE_DESK_ID = process.env.GS_SERVICE_DESK_ID;
 const GS_REQUEST_TYPE_ID = process.env.GS_REQUEST_TYPE_ID;
+const GS_SERVICE_DESK_ID = process.env.GS_SERVICE_DESK_ID;
+const JIRA_ENDPOINT = process.env.JIRA_ENDPOINT;
+const JIRA_KEY = process.env.JIRA_KEY;
+const JIRA_USERNAME = process.env.JIRA_USERNAME;
 
 let descriptionBuilt = true;
 let errorMessage = '';
@@ -32,6 +33,7 @@ const buildDescription = async (requestBodyObject) => {
   } else if (requestBodyObject.formName == 'content-correction') {
     return `*CONTENT QUALITY CORRECTION* \n\n URL of book with problem: ${requestBodyObject.bookURL} \n Title of book: ${requestBodyObject.itemTitle} \n Overall quality: ${requestBodyObject.imageQuality} \n Specific page image problems: ${requestBodyObject.imageProblems} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
   } else {
+    // TODO - use exception handling; test the error handling
     descriptionBuilt = false;
     errorMessage =
       'Issue description did not build, check formName variable is set on front-end form';
@@ -75,7 +77,7 @@ router.post(
       // do the dang posting of the service desk request
       const createIssue = await needle(
         'post',
-        'https://hathitrust.atlassian.net/rest/servicedeskapi/request',
+        `${JIRA_ENDPOINT}/rest/servicedeskapi/request`,
         gsRequestBody,
         headerOptions
       );

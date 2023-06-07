@@ -1,8 +1,10 @@
 const needle = require("needle");
 
-const JIRA_USERNAME = process.env.JIRA_USERNAME;
-const JIRA_KEY = process.env.JIRA_KEY;
+const GS_SERVICE_DESK_ID = process.env.GS_SERVICE_DESK_ID;
 const HT_ACCOUNT_ID = process.env.HT_ACCOUNT_ID;
+const JIRA_ENDPOINT = process.env.JIRA_ENDPOINT;
+const JIRA_KEY = process.env.JIRA_KEY;
+const JIRA_USERNAME = process.env.JIRA_USERNAME;
 
 const headerOptions = {
   username: JIRA_USERNAME,
@@ -22,7 +24,7 @@ createNewCustomer = async (email, name) => {
   try {
     let createCustomer = await needle(
       "post",
-      "https://hathitrust.atlassian.net/rest/servicedeskapi/customer",
+      `${JIRA_ENDPOINT}/rest/servicedeskapi/customer`,
       createCustomerData,
       headerOptions
     );
@@ -55,7 +57,7 @@ addCustomerToServiceDesk = async (account) => {
   try {
     let addCustomer = await needle(
       "post",
-      "https://hathitrust.atlassian.net/rest/servicedeskapi/servicedesk/8/customer",
+      `${JIRA_ENDPOINT}/rest/servicedeskapi/servicedesk/${GS_SERVICE_DESK_ID}/customer`,
       customerAccountID,
       headerOptions
     );
@@ -78,6 +80,9 @@ addCustomerToServiceDesk = async (account) => {
 
 //returns account ID of customer
 exports.getCustomerRecord = async (email, name) => {
+  // TODO: make sure we have something that looks like a complete email address?
+  // TODO: What if the email address matches multiple things?
+
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);
 
@@ -85,7 +90,7 @@ exports.getCustomerRecord = async (email, name) => {
     //send GET request to general system /user endpoint
     let getCustomerData = await needle(
       "get",
-      `https://hathitrust.atlassian.net/rest/api/latest/user/search?query=${encodedEmail}`,
+      `${JIRA_ENDPOINT}/rest/api/latest/user/search?query=${encodedEmail}`,
       {
         headers: { "X-ExperimentalApi": "opt-in" },
         username: JIRA_USERNAME,
