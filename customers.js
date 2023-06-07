@@ -80,8 +80,6 @@ addCustomerToServiceDesk = async (account) => {
 
 //returns account ID of customer
 exports.getCustomerRecord = async (email, name) => {
-  // TODO: make sure we have something that looks like a complete email address?
-  // TODO: What if the email address matches multiple things?
 
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);

@@ -12,9 +12,9 @@ process.env.GS_REQUEST_TYPE_ID = '999'
 
 const expect = require('chai').expect;
 const request = require('supertest');
-const app = require('../app')
-const nock = require('nock')
-
+const app = require('../app');
+const nock = require('nock');
+const sinon = require('sinon');
 
 describe('application', function() {
 
@@ -69,5 +69,22 @@ describe('application', function() {
 
   });
 
+  context("with spied logger", function() { 
+    const sandbox = sinon.createSandbox();
+
+    beforeEach( function() {
+      sandbox.spy(process.stdout,"write")
+    })
+
+    afterEach( function() {
+      sandbox.restore()
+    })
+
+    it('logs output', async function() {
+      response = await request(app)
+        .get('/nonexistent')
+      expect(process.stdout.write.getCall(0).args[0]).to.include('"GET /nonexistent HTTP/1.1" 404');
+    });
+  });
 });
 
