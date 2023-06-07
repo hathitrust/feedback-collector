@@ -16,6 +16,16 @@ const app = require('../app');
 const nock = require('nock');
 const sinon = require('sinon');
 
+function mockJiraCustomer() {
+  return nock(JIRA_ENDPOINT)
+    .get("/rest/api/latest/user/search")
+    .query({ query: /.*/ })
+    .reply(200, [{ accountId: "fake-account-id" }])
+
+    .post(`/rest/servicedeskapi/servicedesk/${GS_SERVICE_DESK_ID}/customer`)
+    .reply(204)
+}
+
 describe('application', function() {
 
   beforeEach(function() {
@@ -48,26 +58,58 @@ describe('application', function() {
   });
 
   it('with mocked JIRA API, POST /api should give a 200 and pass through what JIRA returns', async function() {
-    const scope = nock(JIRA_ENDPOINT)
-
-      .get("/rest/api/latest/user/search")
-      .query({ query: /.*/ })
-      .reply(200, [{ accountId: "fake-account-id" }])
-
-      .post(`/rest/servicedeskapi/servicedesk/${GS_SERVICE_DESK_ID}/customer`)
-      .reply(204)
-
+    scope = mockJiraCustomer()
       .post("/rest/servicedeskapi/request")
       .reply(201, { response: "fake-response" })
 
     response = await request(app)
       .post('/api')
-    .send({summary: 'summary', formName: 'basic-form'})
+    .send({summary: 'summary', formName: 'basic-form', email: 'somebody@somewhere.test'})
 
     expect(response.status).to.equal(200)
     expect(response.body).to.eql({ response: "fake-response" })
+    expect(scope.isDone())
 
   });
+
+  it('when JIRA returns an error, POST /api gives a 500 and passes through what JIRA returns', async function() {
+    scope = mockJiraCustomer()
+      .post("/rest/servicedeskapi/request")
+      .reply(401, { message: "fake-error" })
+
+    response = await request(app)
+      .post('/api')
+    .send({summary: 'summary', formName: 'basic-form'})
+
+    expect(response.status).to.equal(500)
+    expect(response.body).to.eql({ message: "fake-error" })
+    expect(scope.isDone())
+  });
+
+  it('with no parameters, returns a 500 and doesnt call jira', async function() {
+    response = await request(app)
+      .post('/api')
+      .send()
+
+    expect(response.status).to.equal(500)
+    expect(response.body.error).to.include("formName")
+
+    // n.b.: nock would throw an error if something was called unexpectedly
+  });
+
+  it('with no email parameter, posts issue with default customer', async function() {
+    scope = nock(JIRA_ENDPOINT)
+      .post("/rest/servicedeskapi/request")
+      .reply(201)
+
+    response = await request(app)
+      .post('/api')
+      .send({summary: 'summary', formName: 'basic-form'})
+
+    expect(response.status).to.equal(200)
+    expect(scope.isDone())
+  });
+
 
   context("with spied logger", function() { 
     const sandbox = sinon.createSandbox();

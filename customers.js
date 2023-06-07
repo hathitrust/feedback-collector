@@ -81,6 +81,9 @@ addCustomerToServiceDesk = async (account) => {
 //returns account ID of customer
 exports.getCustomerRecord = async (email, name) => {
 
+  // bail out early if no email was provided
+  if(!email) { return HT_ACCOUNT_ID }
+
   //encode symbols in email address before passing to Jira
   const encodedEmail = encodeURIComponent(email);
 

@@ -12,9 +12,6 @@ const JIRA_ENDPOINT = process.env.JIRA_ENDPOINT;
 const JIRA_KEY = process.env.JIRA_KEY;
 const JIRA_USERNAME = process.env.JIRA_USERNAME;
 
-let descriptionBuilt = true;
-let errorMessage = '';
-
 //headers for general Jira http requests
 const headerOptions = {
   username: JIRA_USERNAME,
@@ -33,11 +30,7 @@ const buildDescription = async (requestBodyObject) => {
   } else if (requestBodyObject.formName == 'content-correction') {
     return `*CONTENT QUALITY CORRECTION* \n\n URL of book with problem: ${requestBodyObject.bookURL} \n Title of book: ${requestBodyObject.itemTitle} \n Overall quality: ${requestBodyObject.imageQuality} \n Specific page image problems: ${requestBodyObject.imageProblems} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
   } else {
-    // TODO - use exception handling; test the error handling
-    descriptionBuilt = false;
-    errorMessage =
-      'Issue description did not build, check formName variable is set on front-end form';
-    return;
+    throw new Error('Issue description did not build, check formName variable is set on front-end form');
   }
 };
 
@@ -55,6 +48,28 @@ const buildGSRequest = async (requestBodyObject, accountID) => {
 
   return JSON.stringify(bodyObject);
 };
+
+const createJiraIssue = async(gsRequestBody, headerOptions, res) => {
+  const httpResponse = await needle(
+    'post',
+    `${JIRA_ENDPOINT}/rest/servicedeskapi/request`,
+    gsRequestBody,
+    headerOptions
+  );
+  const jiraResponse = httpResponse.body;
+
+  //error handling for the Jira response
+  if (httpResponse.statusCode == 201) {
+    //issue created successfully, send back 200 OK along with response object
+    res.status(200).json(jiraResponse);
+  } else {
+    //something went wrong, send back 500, response object and console error/message
+    res.status(500).json(jiraResponse);
+    console.error(
+      'Jira issue not created, error: ', jiraResponse.errors
+    );
+  }
+}
 
 router.post(
   '/',
@@ -75,29 +90,11 @@ router.post(
       const gsRequestBody = await buildGSRequest(requestBodyObject, customerID);
 
       // do the dang posting of the service desk request
-      const createIssue = await needle(
-        'post',
-        `${JIRA_ENDPOINT}/rest/servicedeskapi/request`,
-        gsRequestBody,
-        headerOptions
-      );
-      const jiraResp = createIssue.body;
-      const jiraStatus = createIssue.statusCode;
+      await(createJiraIssue(gsRequestBody, headerOptions, res))
 
-      //error handling for the Jira response
-      if (descriptionBuilt && jiraStatus == 201) {
-        //issue created successfully, send back 200 OK along with response object
-        res.status(200).json(jiraResp);
-      } else {
-        //something went wrong, send back 500, response object and console error/message
-        res.status(500).json(jiraResp);
-        console.error(
-          'Jira issue not created, error: ',
-          errorMessage || jiraResp.errors
-        );
-      }
     } catch (error) {
-      res.status(500).json({ error });
+      res.status(500).json({ error: error.message });
+      console.error(error)
     }
   }
 );
