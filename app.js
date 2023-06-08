@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 
 const app = express();
@@ -11,6 +12,9 @@ app.use("/api", express.json());
 
 // Enable cors
 app.use("/api", cors());
+
+// enable logging
+app.use(morgan('combined'))
 
 // Rate limiting
 // returns 429 'Too many requests' error if limit is hit
