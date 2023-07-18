@@ -20,18 +20,3 @@ jobs:
           tag: ${{ github.sha }}
           push_latest: true
           registry_token: ${{ github.token }}
-
-  deploy-staging:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-    - name: Deploy to staging
-      uses: mlibrary/deploy-to-kubernetes@v3
-      with:
-        registry_token: ${{ secrets.GITHUB_TOKEN }}
-        image: ghcr.io/${{ github.repository }}-unstable:${{ github.sha }}
-        cluster_ca: ${{ secrets.KUBERNETES_CA }}
-        cluster_server: ${{ secrets.KUBERNETES_SERVER }}
-        namespace_token: ${{ secrets.KUBERNETES_TOKEN }}
-        namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
