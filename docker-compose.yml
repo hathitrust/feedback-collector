@@ -1,12 +1,11 @@
-version: '3'
-
 services:
   web:
     build:
       context: .
       target: development
+    command: npm run dev
     ports:
-      - "5000:5000"
+      - '5000:5000'
     volumes:
       - .:/usr/src/app
       - node_cache:/usr/src/app/node_modules
@@ -16,6 +15,8 @@ services:
       context: .
       target: development
     command: npm test
+    # to watch tests locally: docker compose run web
+    # then docker compose run web npm run watch-test
     volumes:
       - .:/usr/src/app
       - node_cache:/usr/src/app/node_modules
