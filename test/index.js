@@ -77,7 +77,7 @@ describe('application', function () {
   });
 
   it('with no parameters, returns a 500 and doesnt call jira', async function () {
-    response = await request(app).post('/api').send();
+    response = await request(app).post('/api').send({});
 
     expect(response.status).to.equal(500);
     expect(response.body.error).to.include('formName');
