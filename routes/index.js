@@ -22,6 +22,10 @@ const headerOptions = {
 
 //build request description based on which form is being submitted
 const buildDescription = async (requestBodyObject) => {
+  console.log('buildDescription called with formName:', requestBodyObject.formName);
+  console.log('formName type:', typeof requestBodyObject.formName);
+  console.log('Full requestBodyObject:', JSON.stringify(requestBodyObject, null, 2));
+
   if (requestBodyObject.formName == 'basic-form') {
     return `*GENERAL FEEDBACK* \n\n Book description or URL: ${requestBodyObject.bookDescription} \n Full description: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
   } else if (requestBodyObject.formName == 'catalog-correction') {
@@ -30,7 +34,7 @@ const buildDescription = async (requestBodyObject) => {
   } else if (requestBodyObject.formName == 'content-correction') {
     return `*CONTENT QUALITY CORRECTION* \n\n URL of book with problem: ${requestBodyObject.bookURL} \n Title of book: ${requestBodyObject.itemTitle} \n Overall quality: ${requestBodyObject.imageQuality} \n Specific page image problems: ${requestBodyObject.imageProblems} \n\n Other: ${requestBodyObject.description} \n\n User agent: ${requestBodyObject.userAgent} \n User URL: ${requestBodyObject.userURL} \n User auth: ${requestBodyObject.userAuthStatus}`;
   } else {
-    throw new Error('Issue description did not build, check formName variable is set on front-end form');
+    throw new Error(`Issue description did not build, check formName variable is set on front-end form. Received formName: "${requestBodyObject.formName}" (type: ${typeof requestBodyObject.formName})`);
   }
 };
 
