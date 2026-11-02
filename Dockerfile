@@ -1,4 +1,4 @@
-FROM node:22-slim AS development
+FROM node:26-slim AS development
 
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feedback-collector
 
